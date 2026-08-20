@@ -25,6 +25,7 @@ const SalesAdminModule = {
     this.bindPhotoEvents();
     this.renderCarsTable();
     this.populateQuoteCarSelect();
+    this.populatePhotoCarSelect();
     this.renderRealPhotosGallery();
     this.loadCarsList();
     this.loadMyQuotations();
@@ -565,6 +566,15 @@ const SalesAdminModule = {
   /**
    * Quản lý Ảnh xe thật chụp tại bãi
    */
+  populatePhotoCarSelect: function() {
+    const select = document.getElementById('photo-car-select');
+    if (!select) return;
+
+    select.innerHTML = this.carsList.map(c => `
+      <option value="${c.id || c.VehicleCode || 'mazda-cx5'}">[${c.brand || 'THACO'}] ${c.name || c.ModelName}</option>
+    `).join('');
+  },
+
   bindPhotoEvents: function() {
     const fileInput = document.getElementById('photo-file-input');
     const urlInput = document.getElementById('photo-url-input');
@@ -604,7 +614,8 @@ const SalesAdminModule = {
 
   saveRealPhoto: async function() {
     try {
-      const carId = document.getElementById('photo-car-select').value;
+      const carSelect = document.getElementById('photo-car-select');
+      const carId = carSelect ? carSelect.value : 'mazda-cx5';
       const title = document.getElementById('photo-title-input').value.trim();
       const category = document.getElementById('photo-category-input').value;
       const urlVal = document.getElementById('photo-url-input').value.trim();
@@ -630,27 +641,35 @@ const SalesAdminModule = {
       }
 
       if (car) {
-        car.realPhotos = car.realPhotos || [];
+        if (!Array.isArray(car.realPhotos)) {
+          car.realPhotos = [];
+        }
         car.realPhotos.unshift(newPhoto);
       }
 
-      const localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
-      localPhotos.unshift(newPhoto);
-      localStorage.setItem(`thaco_real_photos_${carId}`, JSON.stringify(localPhotos));
+      // 1. Lưu LocalStorage
+      localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
 
+      // 2. Lưu Firestore
       if (typeof fbDb !== 'undefined' && fbDb) {
         try {
-          const carRef = fbDb.collection('cars').doc(carId);
-          const carDoc = await carRef.get();
-          if (carDoc.exists) {
-            const photos = carDoc.data().realPhotos || [];
-            photos.unshift(newPhoto);
-            await carRef.update({ realPhotos: photos });
-          }
+          await fbDb.collection('cars').doc(carId).set({
+            realPhotos: car ? car.realPhotos : [newPhoto]
+          }, { merge: true });
         } catch (e) {}
       }
 
-      window.showToast("Đã lưu ảnh chụp thật vào kho xe thành công!");
+      // 3. Lưu Supabase Cloud SQL B20Vehicle
+      if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+        try {
+          await SupabaseService.saveVehicle({
+            VehicleCode: carId,
+            RealPhotos: car ? car.realPhotos : [newPhoto]
+          });
+        } catch (e) {}
+      }
+
+      window.showToast("Đã lưu ảnh chụp thật vào Database thành công!");
       
       document.getElementById('sales-real-photo-form').reset();
       this.currentPhotoDataUrl = null;
@@ -674,19 +693,11 @@ const SalesAdminModule = {
       car = THACO_CARS_DATA.models[carId];
     }
 
-    const defaultPhotos = (car && car.realPhotos) ? car.realPhotos : [];
-    const localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
-    
-    const allPhotos = [...localPhotos];
-    defaultPhotos.forEach(dp => {
-      if (!allPhotos.some(ap => ap.url === dp.url)) {
-        allPhotos.push(dp);
-      }
-    });
+    const photos = (car && Array.isArray(car.realPhotos)) ? car.realPhotos : [];
 
-    if (countBadge) countBadge.textContent = `${allPhotos.length} ảnh (${car ? (car.name || car.ModelName) : 'Xe'})`;
+    if (countBadge) countBadge.textContent = `${photos.length} ảnh (${car ? (car.name || car.ModelName) : 'Xe'})`;
 
-    if (allPhotos.length === 0) {
+    if (photos.length === 0) {
       container.innerHTML = `
         <div class="col-span-2 py-10 text-center text-slate-500 text-xs">
           <i class="fa-solid fa-camera text-3xl mb-2 text-slate-600 block"></i>
@@ -696,7 +707,7 @@ const SalesAdminModule = {
       return;
     }
 
-    container.innerHTML = allPhotos.map((p, idx) => `
+    container.innerHTML = photos.map((p, idx) => `
       <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 group hover:border-cyan-500/50 transition">
         <div class="aspect-video rounded-xl overflow-hidden bg-slate-950 relative">
           <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
@@ -705,11 +716,11 @@ const SalesAdminModule = {
           </span>
         </div>
         <div class="flex justify-between items-start">
-          <div>
-            <strong class="text-white text-xs block line-clamp-1">${p.title || 'Ảnh thực tế'}</strong>
-            <span class="text-[11px] text-slate-400 block">${p.desc || 'Chụp tại bãi kho'}</span>
+          <div class="overflow-hidden pr-2">
+            <strong class="text-white text-xs block truncate">${p.title || 'Ảnh thực tế'}</strong>
+            <span class="text-[11px] text-slate-400 block truncate">${p.desc || 'Chụp tại bãi kho'}</span>
           </div>
-          <button onclick="SalesAdminModule.deleteRealPhoto('${carId}', ${idx})" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="Xóa ảnh">
+          <button type="button" onclick="SalesAdminModule.deleteRealPhoto('${carId}', ${idx})" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-rose-400 text-xs transition border border-slate-700 flex-shrink-0" title="Xóa ảnh khỏi kho">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -717,21 +728,41 @@ const SalesAdminModule = {
     `).join('');
   },
 
-  deleteRealPhoto: function(carId, idx) {
-    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi kho?")) return;
+  deleteRealPhoto: async function(carId, idx) {
+    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi Database?")) return;
     
-    let localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
-    if (localPhotos.length > idx) {
-      localPhotos.splice(idx, 1);
-      localStorage.setItem(`thaco_real_photos_${carId}`, JSON.stringify(localPhotos));
+    let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+    if (!car && typeof THACO_CARS_DATA !== 'undefined') {
+      car = THACO_CARS_DATA.models[carId];
     }
 
-    let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
-    if (car && car.realPhotos && car.realPhotos.length > idx) {
+    if (car && Array.isArray(car.realPhotos) && car.realPhotos.length > idx) {
       car.realPhotos.splice(idx, 1);
     }
 
+    // 1. Lưu LocalStorage
+    localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
+
+    // 2. Lưu Firestore
+    if (typeof fbDb !== 'undefined' && fbDb) {
+      try {
+        await fbDb.collection('cars').doc(carId).set({
+          realPhotos: car ? car.realPhotos : []
+        }, { merge: true });
+      } catch (e) {}
+    }
+
+    // 3. Lưu Supabase B20Vehicle
+    if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+      try {
+        await SupabaseService.saveVehicle({
+          VehicleCode: carId,
+          RealPhotos: car ? car.realPhotos : []
+        });
+      } catch (e) {}
+    }
+
     this.renderRealPhotosGallery();
-    window.showToast("Đã xóa ảnh thành công!");
+    window.showToast("Đã xóa ảnh khỏi Database thành công!");
   }
 };
