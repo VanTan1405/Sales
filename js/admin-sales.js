@@ -108,7 +108,7 @@ const SalesAdminModule = {
       const segment = car.segment || car.Segment || 'Xe Đô Thị';
 
       return `
-        <tr class="border-b border-slate-800 hover:bg-slate-800/40 transition text-xs sm:text-sm">
+        <tr id="car-row-${idx}" class="border-b border-slate-800 hover:bg-slate-800/40 transition-all duration-300 text-xs sm:text-sm">
           <td class="px-4 py-3 font-bold text-white flex items-center gap-3">
             <div class="w-12 h-8 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0">
               <img src="${extImg}" class="w-full h-full object-cover">
@@ -284,6 +284,7 @@ const SalesAdminModule = {
 
       this.renderCarsTable();
       this.populateQuoteCarSelect();
+      this.populatePhotoCarSelect();
 
       // Lưu Firestore nền nếu có kết nối
       if (typeof fbDb !== 'undefined' && fbDb) {
@@ -321,35 +322,45 @@ const SalesAdminModule = {
   deleteCar: function(idxOrId) {
     if (!confirm("Bạn có chắc chắn muốn xóa dòng xe này?")) return;
 
-    let removedCar = null;
-
     if (typeof idxOrId === 'number') {
-      removedCar = this.carsList.splice(idxOrId, 1)[0];
-    } else {
-      const idx = this.carsList.findIndex(c => (c.id === idxOrId || c.VehicleCode === idxOrId));
-      if (idx >= 0) {
-        removedCar = this.carsList.splice(idx, 1)[0];
+      const row = document.getElementById(`car-row-${idxOrId}`);
+      if (row) {
+        row.classList.add('opacity-0', 'scale-95', '-translate-x-4');
       }
     }
 
-    // Lưu mảng sau khi xóa vào LocalStorage
-    localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
-    this.renderCarsTable();
-    this.populateQuoteCarSelect();
+    setTimeout(() => {
+      let removedCar = null;
 
-    // Xóa Firestore nền nếu có
-    if (removedCar && typeof fbDb !== 'undefined' && fbDb) {
-      const delId = removedCar.id || removedCar.VehicleCode;
-      fbDb.collection('cars').doc(delId).delete().catch(() => {});
-    }
+      if (typeof idxOrId === 'number') {
+        removedCar = this.carsList.splice(idxOrId, 1)[0];
+      } else {
+        const idx = this.carsList.findIndex(c => (c.id === idxOrId || c.VehicleCode === idxOrId));
+        if (idx >= 0) {
+          removedCar = this.carsList.splice(idx, 1)[0];
+        }
+      }
 
-    // Xóa Supabase B20Vehicle nếu đã cấu hình
-    if (removedCar && typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
-      const delId = removedCar.id || removedCar.VehicleCode;
-      SupabaseService.deleteVehicle(delId).catch(() => {});
-    }
+      // Lưu mảng sau khi xóa vào LocalStorage
+      localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
+      this.renderCarsTable();
+      this.populateQuoteCarSelect();
+      this.populatePhotoCarSelect();
 
-    window.showToast("Đã xóa dòng xe khỏi hệ thống!");
+      // Xóa Firestore nền nếu có
+      if (removedCar && typeof fbDb !== 'undefined' && fbDb) {
+        const delId = removedCar.id || removedCar.VehicleCode;
+        fbDb.collection('cars').doc(delId).delete().catch(() => {});
+      }
+
+      // Xóa Supabase B20Vehicle nếu đã cấu hình
+      if (removedCar && typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+        const delId = removedCar.id || removedCar.VehicleCode;
+        SupabaseService.deleteVehicle(delId).catch(() => {});
+      }
+
+      window.showToast("Đã xóa dòng xe khỏi hệ thống!");
+    }, 200);
   },
 
   /**
@@ -708,7 +719,7 @@ const SalesAdminModule = {
     }
 
     container.innerHTML = photos.map((p, idx) => `
-      <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 group hover:border-cyan-500/50 transition">
+      <div id="photo-card-${carId}-${idx}" class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 group hover:border-cyan-500/50 transition-all duration-300 transform scale-100 opacity-100">
         <div class="aspect-video rounded-xl overflow-hidden bg-slate-950 relative">
           <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
           <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur text-[10px] font-bold text-cyan-300 border border-slate-700">
@@ -730,39 +741,47 @@ const SalesAdminModule = {
 
   deleteRealPhoto: async function(carId, idx) {
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi Database?")) return;
-    
-    let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
-    if (!car && typeof THACO_CARS_DATA !== 'undefined') {
-      car = THACO_CARS_DATA.models[carId];
+
+    // Hiệu ứng biến mất tức thì trên DOM ngay lập tức
+    const el = document.getElementById(`photo-card-${carId}-${idx}`);
+    if (el) {
+      el.classList.add('scale-75', 'opacity-0', '-translate-y-4', 'pointer-events-none');
     }
 
-    if (car && Array.isArray(car.realPhotos) && car.realPhotos.length > idx) {
-      car.realPhotos.splice(idx, 1);
-    }
+    setTimeout(async () => {
+      let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+      if (!car && typeof THACO_CARS_DATA !== 'undefined') {
+        car = THACO_CARS_DATA.models[carId];
+      }
 
-    // 1. Lưu LocalStorage
-    localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
+      if (car && Array.isArray(car.realPhotos) && car.realPhotos.length > idx) {
+        car.realPhotos.splice(idx, 1);
+      }
 
-    // 2. Lưu Firestore
-    if (typeof fbDb !== 'undefined' && fbDb) {
-      try {
-        await fbDb.collection('cars').doc(carId).set({
-          realPhotos: car ? car.realPhotos : []
-        }, { merge: true });
-      } catch (e) {}
-    }
+      // 1. Lưu LocalStorage
+      localStorage.setItem('thaco_custom_cars', JSON.stringify(this.carsList));
 
-    // 3. Lưu Supabase B20Vehicle
-    if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
-      try {
-        await SupabaseService.saveVehicle({
-          VehicleCode: carId,
-          RealPhotos: car ? car.realPhotos : []
-        });
-      } catch (e) {}
-    }
+      // 2. Lưu Firestore
+      if (typeof fbDb !== 'undefined' && fbDb) {
+        try {
+          await fbDb.collection('cars').doc(carId).set({
+            realPhotos: car ? car.realPhotos : []
+          }, { merge: true });
+        } catch (e) {}
+      }
 
-    this.renderRealPhotosGallery();
-    window.showToast("Đã xóa ảnh khỏi Database thành công!");
+      // 3. Lưu Supabase B20Vehicle
+      if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+        try {
+          await SupabaseService.saveVehicle({
+            VehicleCode: carId,
+            RealPhotos: car ? car.realPhotos : []
+          });
+        } catch (e) {}
+      }
+
+      this.renderRealPhotosGallery();
+      window.showToast("Đã xóa ảnh thành công!");
+    }, 200);
   }
 };
