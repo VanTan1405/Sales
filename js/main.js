@@ -21,7 +21,7 @@ const App = {
     loanPercent: 80,
     loanYears: 8,
     interestRate: 7.5,
-    selectedGifts: [...THACO_CARS_DATA.defaultGifts]
+    selectedGifts: (typeof QuoteEngine !== 'undefined' && QuoteEngine.getAllGifts) ? QuoteEngine.getAllGifts() : []
   },
 
   loanChart: null,
@@ -29,6 +29,11 @@ const App = {
   init: async function() {
     this.bindDOMEvents();
     InteractiveViewer.init();
+
+    // Nạp gói quà tặng mới nhất
+    if (typeof QuoteEngine !== 'undefined' && QuoteEngine.getAllGifts) {
+      this.state.selectedGifts = QuoteEngine.getAllGifts();
+    }
 
     // Setup global callback for color selection from viewer
     window.onSelectColorCallback = (colorId) => {
@@ -45,15 +50,15 @@ const App = {
     this.renderGiftsChecklist();
     this.updateQuotation();
 
-    // Lắng nghe cập nhật xe & ảnh từ Firestore / Supabase theo thời gian thực
+    // Lắng nghe cập nhật xe & ảnh & quà tặng từ Firestore / Supabase theo thời gian thực
     this.listenToDatabaseUpdates();
   },
 
   /**
-   * Đồng bộ dữ liệu xe & ảnh từ Database xuống trang khách hàng
+   * Đồng bộ dữ liệu xe & ảnh & quà tặng từ Database xuống trang khách hàng
    */
   listenToDatabaseUpdates: function() {
-    // 1. Lắng nghe Firestore
+    // 1. Lắng nghe Firestore Cars
     if (typeof fbDb !== 'undefined' && fbDb) {
       try {
         fbDb.collection('cars').onSnapshot((snapshot) => {
@@ -65,6 +70,16 @@ const App = {
               this.renderCarSelectOptions();
               this.updateQuotation();
             }
+          }
+        }, () => {});
+
+        // Lắng nghe Firestore Gifts
+        fbDb.collection('settings').doc('gifts').onSnapshot((doc) => {
+          if (doc.exists && doc.data().list) {
+            const gifts = doc.data().list;
+            localStorage.setItem('thaco_custom_gifts', JSON.stringify(gifts));
+            this.state.selectedGifts = gifts;
+            this.renderGiftsChecklist();
           }
         }, () => {});
       } catch (e) {}

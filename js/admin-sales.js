@@ -20,13 +20,19 @@ const SalesAdminModule = {
   editingCarColors: [],
   currentPhotoDataUrl: null,
 
+  giftsList: (function() {
+    return typeof QuoteEngine !== 'undefined' ? QuoteEngine.getAllGifts() : [];
+  })(),
+
   init: function() {
     this.bindEvents();
     this.bindPhotoEvents();
+    this.bindGiftEvents();
     this.renderCarsTable();
     this.populateQuoteCarSelect();
     this.populatePhotoCarSelect();
     this.renderRealPhotosGallery();
+    this.renderGiftsTable();
     this.loadCarsList();
     this.loadMyQuotations();
   },
@@ -857,5 +863,146 @@ const SalesAdminModule = {
       this.renderRealPhotosGallery();
       window.showToast("Đã xóa ảnh thành công!");
     }, 200);
+  },
+
+  /**
+   * =========================================================================
+   * QUẢN LÝ GÓI QUÀ TẶNG & PHỤ KIỆN (GIFTS & ACCESSORIES)
+   * =========================================================================
+   */
+  bindGiftEvents: function() {
+    const giftForm = document.getElementById('sales-gift-form');
+    giftForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveGift();
+    });
+  },
+
+  renderGiftsTable: function() {
+    const container = document.getElementById('admin-gifts-list-container');
+    const countBadge = document.getElementById('gifts-total-count');
+    if (!container) return;
+
+    if (countBadge) countBadge.textContent = `${this.giftsList.length} món quà`;
+
+    if (this.giftsList.length === 0) {
+      container.innerHTML = `
+        <div class="p-8 text-center text-slate-500 text-xs">
+          <i class="fa-solid fa-gift text-2xl mb-1 text-slate-600 block"></i>
+          Chưa có gói quà tặng nào. Hãy thêm món quà đầu tiên ở cột bên trái!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.giftsList.map((g, idx) => `
+      <div id="gift-item-${idx}" class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3 group hover:border-pink-500/50 transition-all duration-300 transform scale-100 opacity-100">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <input type="checkbox" ${g.selected ? 'checked' : ''} onchange="SalesAdminModule.toggleGiftSelection(${idx}, this.checked)" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500 cursor-pointer" title="Bật/Tắt mặc định tích chọn">
+          <div>
+            <strong class="text-white text-xs sm:text-sm block truncate">${g.name}</strong>
+            <span class="text-xs font-black text-emerald-400">Trị giá: ${QuoteEngine.formatVND(g.value)}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button type="button" onclick="SalesAdminModule.editGift(${idx})" class="p-2 rounded-xl bg-slate-800 hover:bg-blue-900 text-blue-400 text-xs transition border border-slate-700" title="Sửa quà tặng">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button type="button" onclick="SalesAdminModule.deleteGift(${idx})" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-rose-400 text-xs transition border border-slate-700" title="Xóa quà tặng">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  saveGift: async function() {
+    try {
+      const editId = document.getElementById('gift-edit-id')?.value || '';
+      const name = document.getElementById('gift-name-input')?.value?.trim();
+      const valEl = document.getElementById('gift-value-input');
+      const val = valEl ? (Number(valEl.value.replace(/\D/g, '')) || 0) : 0;
+      const selected = document.getElementById('gift-default-selected')?.checked || false;
+
+      if (!name) {
+        alert("Vui lòng nhập tên món quà / phụ kiện!");
+        return;
+      }
+
+      if (editId) {
+        const idx = parseInt(editId);
+        if (this.giftsList[idx]) {
+          this.giftsList[idx] = { id: this.giftsList[idx].id || `gift_${Date.now()}`, name, value: val, selected };
+        }
+      } else {
+        this.giftsList.push({
+          id: `gift_${Date.now()}`,
+          name,
+          value: val,
+          selected
+        });
+      }
+
+      // Lưu LocalStorage
+      localStorage.setItem('thaco_custom_gifts', JSON.stringify(this.giftsList));
+
+      // Lưu Firestore nếu có
+      if (typeof fbDb !== 'undefined' && fbDb) {
+        fbDb.collection('settings').doc('gifts').set({ list: this.giftsList }).catch(() => {});
+      }
+
+      this.renderGiftsTable();
+      document.getElementById('sales-gift-form')?.reset();
+      document.getElementById('gift-edit-id').value = '';
+      document.getElementById('gift-form-btn-text').textContent = 'Thêm Vào Gói Quà Tặng Báo Giá';
+      window.showToast("Đã lưu gói quà tặng thành công!");
+    } catch (err) {
+      alert("Lỗi lưu quà tặng: " + err.message);
+    }
+  },
+
+  editGift: function(idx) {
+    const gift = this.giftsList[idx];
+    if (!gift) return;
+
+    document.getElementById('gift-edit-id').value = idx;
+    document.getElementById('gift-name-input').value = gift.name;
+    document.getElementById('gift-value-input').value = gift.value.toLocaleString('vi-VN');
+    document.getElementById('gift-default-selected').checked = !!gift.selected;
+    document.getElementById('gift-form-btn-text').textContent = 'Cập Nhật Món Quà Tặng Này';
+    document.getElementById('gift-name-input')?.focus();
+  },
+
+  deleteGift: function(idx) {
+    if (!confirm("Bạn có chắc chắn muốn xóa món quà này khỏi danh sách?")) return;
+
+    const el = document.getElementById(`gift-item-${idx}`);
+    if (el) {
+      el.classList.add('scale-75', 'opacity-0', '-translate-x-4', 'pointer-events-none');
+    }
+
+    setTimeout(() => {
+      this.giftsList.splice(idx, 1);
+      localStorage.setItem('thaco_custom_gifts', JSON.stringify(this.giftsList));
+
+      if (typeof fbDb !== 'undefined' && fbDb) {
+        fbDb.collection('settings').doc('gifts').set({ list: this.giftsList }).catch(() => {});
+      }
+
+      this.renderGiftsTable();
+      window.showToast("Đã xóa quà tặng thành công!");
+    }, 200);
+  },
+
+  toggleGiftSelection: function(idx, checked) {
+    if (this.giftsList[idx]) {
+      this.giftsList[idx].selected = checked;
+      localStorage.setItem('thaco_custom_gifts', JSON.stringify(this.giftsList));
+
+      if (typeof fbDb !== 'undefined' && fbDb) {
+        fbDb.collection('settings').doc('gifts').set({ list: this.giftsList }).catch(() => {});
+      }
+      window.showToast("Đã cập nhật trạng thái mặc định!");
+    }
   }
 };

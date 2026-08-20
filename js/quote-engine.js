@@ -64,6 +64,20 @@ const QuoteEngine = {
   },
 
   /**
+   * Lấy danh sách toàn bộ gói quà tặng cập nhật từ LocalStorage hoặc dữ liệu gốc
+   */
+  getAllGifts: function() {
+    const saved = localStorage.getItem('thaco_custom_gifts');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return typeof THACO_CARS_DATA !== 'undefined' ? JSON.parse(JSON.stringify(THACO_CARS_DATA.defaultGifts)) : [];
+  },
+
+  /**
    * Lấy danh sách toàn bộ xe cập nhật từ LocalStorage hoặc dữ liệu gốc
    */
   getAllCars: function() {

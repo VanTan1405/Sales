@@ -199,6 +199,11 @@
           Album Ảnh Chụp Thật
         </button>
 
+        <button data-tab="sales-gifts" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-gift text-pink-400"></i>
+          Gói Quà Tặng & Phụ Kiện
+        </button>
+
       </div>
     </div>
 
@@ -728,6 +733,69 @@
 
             <!-- Photos Grid -->
             <div id="admin-real-photos-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto pr-1">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+      <!-- ===============================================================
+           SALES TAB 5: GIFTS & ACCESSORIES MANAGEMENT (QUÀ TẶNG & PHỤ KIỆN)
+           =============================================================== -->
+      <section id="pane-sales-gifts" class="admin-tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Form Thêm Quà Tặng (5 cols) -->
+          <div class="lg:col-span-5 p-6 rounded-3xl admin-card space-y-5">
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-gift text-pink-400"></i>
+                Thêm Gói Quà Tặng / Phụ Kiện
+              </h2>
+              <p class="text-xs text-slate-400">Các món quà này sẽ tự động xuất hiện trên danh sách tích chọn của khách hàng</p>
+            </div>
+
+            <form id="sales-gift-form" class="space-y-4 text-xs sm:text-sm">
+              <input type="hidden" id="gift-edit-id">
+
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">Tên món quà / Phụ kiện:</label>
+                <input type="text" id="gift-name-input" required placeholder="Ví dụ: Tặng 01 năm Bảo hiểm thân vỏ chính hãng" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">Trị giá quà tặng quy đổi (VND):</label>
+                <input type="text" id="gift-value-input" required placeholder="10.000.000" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-emerald-400 font-black">
+              </div>
+
+              <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
+                <input type="checkbox" id="gift-default-selected" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                <div>
+                  <label for="gift-default-selected" class="font-bold text-white block cursor-pointer">Mặc định tích chọn sẵn cho khách</label>
+                  <span class="text-[11px] text-slate-400 block">Khách mở báo giá sẽ thấy món này đã được chọn tặng</span>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-black text-sm shadow-xl shadow-pink-600/30 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span id="gift-form-btn-text">Thêm Vào Gói Quà Tặng Báo Giá</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Danh Sách Quà Tặng (7 cols) -->
+          <div class="lg:col-span-7 p-6 rounded-3xl admin-card space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                  <i class="fa-solid fa-list-check text-pink-400"></i>
+                  Danh Sách Gói Quà Tặng Đang Áp Dụng
+                </h3>
+                <p class="text-xs text-slate-400">Đang đồng bộ trực tiếp sang trang báo giá khách hàng</p>
+              </div>
+              <span id="gifts-total-count" class="text-xs font-bold px-2.5 py-1 rounded-full bg-pink-500/20 text-pink-400 border border-pink-500/30">0 món</span>
+            </div>
+
+            <!-- Gifts List Container -->
+            <div id="admin-gifts-list-container" class="space-y-2.5 max-h-[550px] overflow-y-auto pr-1">
               <!-- Rendered by JS -->
             </div>
           </div>
