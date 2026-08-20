@@ -1,5 +1,6 @@
 /**
- * FIREBASE INITIALIZATION & CONFIGURATION
+ * FIREBASE INITIALIZATION & REALTIME CONNECTION
+ * Project ID: website-nail
  */
 
 const firebaseConfig = {
@@ -13,44 +14,91 @@ const firebaseConfig = {
   measurementId: "G-QHYWL9HGTX"
 };
 
-// Initialize Firebase
+// Initialize Firebase App
+let app = null;
 if (typeof firebase !== 'undefined') {
   if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+    app = firebase.initializeApp(firebaseConfig);
+  } else {
+    app = firebase.app();
   }
 }
 
 // Global Firebase service instances
-const fbAuth = typeof firebase !== 'undefined' ? firebase.auth() : null;
-const fbDb = typeof firebase !== 'undefined' ? firebase.firestore() : null;
-const fbStorage = typeof firebase !== 'undefined' ? firebase.storage() : null;
+const fbAuth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+const fbDb = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
+const fbRtdb = typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null;
+const fbStorage = typeof firebase !== 'undefined' && firebase.storage ? firebase.storage() : null;
 
-// Initialize collections and default data if empty
-async function initFirebaseCollections() {
-  if (!fbDb) return;
+// Firebase Connection Status Tracker
+const FirebaseStatus = {
+  isConnected: false,
+  message: "Đang kết nối Firebase...",
+  details: {},
 
-  try {
-    // Check if cars collection has data, if not initialize with default THACO cars
-    const carsSnapshot = await fbDb.collection('cars').limit(1).get();
-    if (carsSnapshot.empty && typeof THACO_CARS_DATA !== 'undefined') {
-      const batch = fbDb.batch();
-      for (const [id, car] of Object.entries(THACO_CARS_DATA.models)) {
-        const carRef = fbDb.collection('cars').doc(id);
-        batch.set(carRef, car);
+  checkConnection: async function(onStatusUpdate) {
+    let connected = false;
+    let msg = "";
+
+    // 1. Kiểm tra Realtime Database (website-nail-default-rtdb)
+    if (fbRtdb) {
+      try {
+        await fbRtdb.ref('connection_test').set({
+          status: 'online',
+          timestamp: Date.now(),
+          client: 'THACO Auto Studio'
+        });
+        connected = true;
+        this.details.rtdb = "CONNECTED";
+        msg = "Đã kết nối Realtime Database (website-nail)";
+      } catch (rtdbErr) {
+        console.warn("RTDB notice:", rtdbErr.message);
+        this.details.rtdbError = rtdbErr.message;
       }
-      await batch.commit();
-      console.log('Firebase: Initialized default THACO cars data');
     }
 
-    // Check system settings
-    const settingsDoc = await fbDb.collection('system_settings').doc('showroom').get();
-    if (!settingsDoc.exists && typeof THACO_CARS_DATA !== 'undefined') {
-      await fbDb.collection('system_settings').doc('showroom').set({
-        ...THACO_CARS_DATA.showroom,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    // 2. Kiểm tra Cloud Firestore
+    if (fbDb) {
+      try {
+        await fbDb.collection('connection_test').doc('ping').set({
+          status: 'online',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          project: firebaseConfig.projectId
+        }, { merge: true });
+        connected = true;
+        this.details.firestore = "CONNECTED";
+        msg = "Đã kết nối Cloud Firestore (" + firebaseConfig.projectId + ")";
+      } catch (firestoreErr) {
+        console.warn("Firestore notice:", firestoreErr.message);
+        this.details.firestoreError = firestoreErr.message;
+      }
     }
-  } catch (err) {
-    console.warn('Firebase init warning:', err.message);
+
+    this.isConnected = connected;
+    this.message = connected ? msg : "Firebase đã nạp xong (Cần mở Rules trên Firebase Console nếu muốn ghi)";
+
+    if (onStatusUpdate) {
+      onStatusUpdate(this);
+    }
+    return this;
+  }
+};
+
+// Khởi tạo danh mục xe và cài đặt lên Firebase
+async function initFirebaseCollections() {
+  if (fbDb && typeof THACO_CARS_DATA !== 'undefined') {
+    try {
+      const snap = await fbDb.collection('cars').limit(1).get();
+      if (snap.empty) {
+        const batch = fbDb.batch();
+        for (const [id, car] of Object.entries(THACO_CARS_DATA.models)) {
+          batch.set(fbDb.collection('cars').doc(id), car);
+        }
+        await batch.commit();
+        console.log("Firebase: Đã đồng bộ danh mục xe lên Firestore");
+      }
+    } catch (e) {
+      console.warn("Auto-sync note:", e.message);
+    }
   }
 }

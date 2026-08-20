@@ -47,51 +47,65 @@ const App = {
   },
 
   /**
-   * Đọc Báo Giá Từ Firestore nếu có mã ?quoteId=... trên đường dẫn
+   * Đọc Báo Giá Từ Firestore / Supabase / LocalStorage theo mã ?quoteId=...
    */
   checkUrlQuoteParam: async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const quoteId = urlParams.get('quoteId');
 
-    if (quoteId && fbDb) {
-      this.state.quoteId = quoteId;
+    if (!quoteId) return;
+    this.state.quoteId = quoteId;
+
+    let q = null;
+
+    // 1. Thử tìm trong LocalStorage trước
+    try {
+      const localQuotes = JSON.parse(localStorage.getItem('thaco_local_quotes') || '[]');
+      q = localQuotes.find(item => (item.quoteId === quoteId || item.id === quoteId || item.QuoteID === quoteId));
+    } catch (e) {}
+
+    // 2. Nếu chưa có, thử tìm trong Firestore
+    if (!q && typeof fbDb !== 'undefined' && fbDb) {
       try {
         const doc = await fbDb.collection('quotations').doc(quoteId).get();
         if (doc.exists) {
-          const q = doc.data();
-          this.state.carId = q.carId || this.state.carId;
-          this.state.colorId = q.colorId || this.state.colorId;
-          this.state.provinceId = q.provinceId || this.state.provinceId;
-          this.state.discount = q.discount || 0;
-          this.state.customerName = q.customerName || this.state.customerName;
-          this.state.customerPhone = q.customerPhone || this.state.customerPhone;
-          this.state.salesName = q.salesName || this.state.salesName;
-          this.state.salesPhone = q.salesPhone || this.state.salesPhone;
-          this.state.showroom = q.showroom || this.state.showroom;
-
-          // Cập nhật giao diện thông tin Sales
-          const salesNameEl = document.getElementById('sales-consultant-name');
-          const salesPhoneEl = document.getElementById('sales-consultant-phone');
-          const custNameInput = document.getElementById('cust-name-input');
-          const custPhoneInput = document.getElementById('cust-phone-input');
-          const discountInput = document.getElementById('discount-input');
-
-          if (salesNameEl) salesNameEl.textContent = this.state.salesName;
-          if (salesPhoneEl) salesPhoneEl.textContent = this.state.salesPhone;
-          if (custNameInput) custNameInput.value = this.state.customerName;
-          if (custPhoneInput) custPhoneInput.value = this.state.customerPhone;
-          if (discountInput) discountInput.value = this.state.discount.toLocaleString('vi-VN');
-
-          // Đánh dấu khách đã mở xem báo giá lên Firestore
-          if (q.status === 'sent') {
-            fbDb.collection('quotations').doc(quoteId).update({ status: 'viewed' });
-          }
-
-          window.showToast(`Đang hiển thị báo giá [${quoteId}] dành riêng cho ${this.state.customerName}`);
+          q = doc.data();
         }
-      } catch (err) {
-        console.warn("Lỗi tải báo giá từ Firestore:", err);
-      }
+      } catch (err) {}
+    }
+
+    // 3. Nếu chưa có, thử tìm trong Supabase
+    if (!q && typeof SupabaseService !== 'undefined') {
+      try {
+        q = await SupabaseService.getQuotationById(quoteId);
+      } catch (err) {}
+    }
+
+    if (q) {
+      this.state.carId = q.carId || q.VehicleCode || this.state.carId;
+      this.state.colorId = q.colorId || this.state.colorId;
+      this.state.provinceId = q.provinceId || q.Province || this.state.provinceId;
+      this.state.discount = q.discount || q.DiscountAmount || 0;
+      this.state.customerName = q.customerName || q.CustomerName || this.state.customerName;
+      this.state.customerPhone = q.customerPhone || q.CustomerPhone || this.state.customerPhone;
+      this.state.salesName = q.salesName || q.SalesName || this.state.salesName;
+      this.state.salesPhone = q.salesPhone || q.SalesPhone || this.state.salesPhone;
+      this.state.showroom = q.showroom || q.Showroom || this.state.showroom;
+
+      // Cập nhật giao diện thông tin Sales
+      const salesNameEl = document.getElementById('sales-consultant-name');
+      const salesPhoneEl = document.getElementById('sales-consultant-phone');
+      const custNameInput = document.getElementById('cust-name-input');
+      const custPhoneInput = document.getElementById('cust-phone-input');
+      const discountInput = document.getElementById('discount-input');
+
+      if (salesNameEl) salesNameEl.textContent = this.state.salesName;
+      if (salesPhoneEl) salesPhoneEl.textContent = this.state.salesPhone;
+      if (custNameInput) custNameInput.value = this.state.customerName;
+      if (custPhoneInput) custPhoneInput.value = this.state.customerPhone;
+      if (discountInput) discountInput.value = this.state.discount.toLocaleString('vi-VN');
+
+      window.showToast(`Đang hiển thị báo giá [${quoteId}] dành riêng cho ${this.state.customerName}`);
     }
   },
 
