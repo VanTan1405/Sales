@@ -789,28 +789,62 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Thông số động cơ:</label>
+            <input type="text" id="car-form-engine" placeholder="SkyActiv-G 2.0L (154 Hp)" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Chế độ bảo hành:</label>
+            <input type="text" id="car-form-warranty" value="5 năm hoặc 150.000 km" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+          </div>
+        </div>
+
         <!-- Photo & Color Inputs -->
-        <div class="border-t border-slate-800 pt-3 space-y-3">
+        <div class="border-t border-slate-800 pt-3 space-y-4">
           <h4 class="font-bold text-blue-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
             <i class="fa-solid fa-palette"></i>
-            Hình Ảnh Mẫu & Bảng Màu Sơn Xe
+            Đính Kèm Ảnh Mẫu & Bảng Màu Sơn Xe
           </h4>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Ảnh Ngoại Thất Xe Mặc Định (URL):</label>
-              <input type="url" id="car-form-img-ext" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Ngoại thất -->
+            <div class="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+              <label class="font-bold text-slate-300 block text-xs">1. Ảnh Ngoại Thất Xe Mặc Định:</label>
+              <div class="flex items-center gap-2">
+                <input type="file" id="car-form-file-ext" accept="image/*" class="hidden">
+                <button type="button" onclick="document.getElementById('car-form-file-ext').click()" class="px-3 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-300 text-xs font-bold border border-blue-500/40 flex items-center gap-1.5 whitespace-nowrap">
+                  <i class="fa-solid fa-camera"></i> Chọn file ảnh
+                </button>
+                <input type="url" id="car-form-img-ext" placeholder="Hoặc dán link URL..." class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono">
+              </div>
+              <div id="car-preview-ext-box" class="h-24 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 hidden relative">
+                <img id="car-preview-ext-img" src="" class="w-full h-full object-cover">
+                <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-slate-900/80 text-[10px] text-cyan-300">Ngoại thất</span>
+              </div>
             </div>
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Ảnh Nội Thất Khoang Lái (URL):</label>
-              <input type="url" id="car-form-img-int" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono">
+
+            <!-- Nội thất -->
+            <div class="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+              <label class="font-bold text-slate-300 block text-xs">2. Ảnh Nội Thất Khoang Lái:</label>
+              <div class="flex items-center gap-2">
+                <input type="file" id="car-form-file-int" accept="image/*" class="hidden">
+                <button type="button" onclick="document.getElementById('car-form-file-int').click()" class="px-3 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 text-xs font-bold border border-emerald-500/40 flex items-center gap-1.5 whitespace-nowrap">
+                  <i class="fa-solid fa-camera"></i> Chọn file ảnh
+                </button>
+                <input type="url" id="car-form-img-int" placeholder="Hoặc dán link URL..." class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono">
+              </div>
+              <div id="car-preview-int-box" class="h-24 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 hidden relative">
+                <img id="car-preview-int-img" src="" class="w-full h-full object-cover">
+                <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-slate-900/80 text-[10px] text-emerald-300">Nội thất</span>
+              </div>
             </div>
           </div>
 
           <!-- Color Customizer -->
           <div>
             <div class="flex justify-between items-center mb-1.5">
-              <label class="font-bold text-slate-300 block">Các Màu Sơn Chính Hãng & Giá Phụ Thu:</label>
+              <label class="font-bold text-slate-300 block text-xs">3. Các Màu Sơn Chính Hãng & Giá Phụ Thu:</label>
               <button type="button" id="btn-add-car-color" class="px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-300 text-[11px] font-bold border border-blue-500/40">
                 <i class="fa-solid fa-plus mr-1"></i>Thêm Màu Sơn
               </button>
@@ -822,8 +856,9 @@
           </div>
         </div>
 
-        <button type="submit" class="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-600/30 transition mt-3">
-          Lưu Dòng Xe & Bảng Màu Vào Hệ Thống
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 transition mt-3 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Lưu Dòng Xe & Bảng Màu Vào Hệ Thống</span>
         </button>
       </form>
     </div>

@@ -166,23 +166,33 @@ const SalesAdminModule = {
 
     if (car) {
       title.textContent = `Chỉnh sửa dòng xe: ${car.name || car.ModelName}`;
-      document.getElementById('car-form-brand').value = car.brand || car.Brand || 'Mazda';
-      document.getElementById('car-form-name').value = car.name || car.ModelName || '';
-      document.getElementById('car-form-segment').value = car.segment || car.Segment || '';
-      document.getElementById('car-form-price').value = (car.listPrice || car.ListPrice || 0).toLocaleString('vi-VN');
-      document.getElementById('car-form-discount').value = (car.defaultDiscount || car.DefaultDiscount || 0).toLocaleString('vi-VN');
-      document.getElementById('car-form-engine').value = car.engine || car.Engine || '';
-      document.getElementById('car-form-seats').value = car.seats || car.Seats || 5;
-      document.getElementById('car-form-warranty').value = car.warranty || car.Warranty || '5 năm hoặc 150.000 km';
+      if (document.getElementById('car-form-brand')) document.getElementById('car-form-brand').value = car.brand || car.Brand || 'Mazda';
+      if (document.getElementById('car-form-name')) document.getElementById('car-form-name').value = car.name || car.ModelName || '';
+      if (document.getElementById('car-form-segment')) document.getElementById('car-form-segment').value = car.segment || car.Segment || 'C-SUV 5 Chỗ';
+      if (document.getElementById('car-form-price')) document.getElementById('car-form-price').value = (car.listPrice || car.ListPrice || 800000000).toLocaleString('vi-VN');
+      if (document.getElementById('car-form-discount')) document.getElementById('car-form-discount').value = (car.defaultDiscount || car.DefaultDiscount || 0).toLocaleString('vi-VN');
+      if (document.getElementById('car-form-engine')) document.getElementById('car-form-engine').value = car.engine || car.Engine || 'SkyActiv-G 2.0L';
+      if (document.getElementById('car-form-seats')) document.getElementById('car-form-seats').value = car.seats || car.Seats || 5;
+      if (document.getElementById('car-form-warranty')) document.getElementById('car-form-warranty').value = car.warranty || car.Warranty || '5 năm hoặc 150.000 km';
 
       const colors = car.colors || [{ id: "soul-red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 }];
-      document.getElementById('car-form-img-ext').value = (colors[0] && colors[0].imageExterior) || car.imageExterior || '';
-      document.getElementById('car-form-img-int').value = car.imageInterior || '';
+      const extImg = (colors[0] && colors[0].imageExterior) || car.imageExterior || '';
+      const intImg = car.imageInterior || '';
+      
+      if (document.getElementById('car-form-img-ext')) document.getElementById('car-form-img-ext').value = extImg;
+      if (document.getElementById('car-form-img-int')) document.getElementById('car-form-img-int').value = intImg;
+      
+      this.updateCarPreviewImages(extImg, intImg);
       this.editingCarColors = JSON.parse(JSON.stringify(colors));
     } else {
       title.textContent = "Thêm Dòng Xe Mới Vào Hệ Thống";
-      document.getElementById('car-form-img-ext').value = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80';
-      document.getElementById('car-form-img-int').value = 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80';
+      const defaultExt = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80';
+      const defaultInt = 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80';
+      
+      if (document.getElementById('car-form-img-ext')) document.getElementById('car-form-img-ext').value = defaultExt;
+      if (document.getElementById('car-form-img-int')) document.getElementById('car-form-img-int').value = defaultInt;
+      
+      this.updateCarPreviewImages(defaultExt, defaultInt);
       this.editingCarColors = [
         { id: "red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 },
         { id: "white", name: "Trắng Ngọc Trai", hex: "#f3f4f6", extraFee: 4000000 },
@@ -192,7 +202,63 @@ const SalesAdminModule = {
 
     this.renderCarColorsEditor();
     this.bindCarColorEvents();
+    this.bindCarFileEvents();
     modal.classList.remove('hidden');
+  },
+
+  updateCarPreviewImages: function(extUrl, intUrl) {
+    const extBox = document.getElementById('car-preview-ext-box');
+    const extImg = document.getElementById('car-preview-ext-img');
+    const intBox = document.getElementById('car-preview-int-box');
+    const intImg = document.getElementById('car-preview-int-img');
+
+    if (extUrl && extBox && extImg) {
+      extImg.src = extUrl;
+      extBox.classList.remove('hidden');
+    }
+    if (intUrl && intBox && intImg) {
+      intImg.src = intUrl;
+      intBox.classList.remove('hidden');
+    }
+  },
+
+  bindCarFileEvents: function() {
+    const fileExt = document.getElementById('car-form-file-ext');
+    const urlExt = document.getElementById('car-form-img-ext');
+    const fileInt = document.getElementById('car-form-file-int');
+    const urlInt = document.getElementById('car-form-img-int');
+
+    fileExt?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (urlExt) urlExt.value = event.target.result;
+          this.updateCarPreviewImages(event.target.result, null);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    urlExt?.addEventListener('input', () => {
+      this.updateCarPreviewImages(urlExt.value.trim(), null);
+    });
+
+    fileInt?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (urlInt) urlInt.value = event.target.result;
+          this.updateCarPreviewImages(null, event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    urlInt?.addEventListener('input', () => {
+      this.updateCarPreviewImages(null, urlInt.value.trim());
+    });
   },
 
   bindCarColorEvents: function() {
@@ -234,21 +300,29 @@ const SalesAdminModule = {
    */
   saveCar: async function() {
     try {
-      const editId = document.getElementById('car-edit-id').value;
-      const brand = document.getElementById('car-form-brand').value;
-      const name = document.getElementById('car-form-name').value.trim();
+      const editId = document.getElementById('car-edit-id')?.value || '';
+      const brand = document.getElementById('car-form-brand')?.value || 'Kia';
+      const name = document.getElementById('car-form-name')?.value?.trim() || 'Dòng Xe Mới';
       const carId = editId || `car_${Date.now()}`;
       
-      const listPrice = Number(document.getElementById('car-form-price').value.replace(/\D/g, '')) || 800000000;
-      const discount = Number(document.getElementById('car-form-discount').value.replace(/\D/g, '')) || 0;
-      const imgExt = document.getElementById('car-form-img-ext').value.trim();
-      const imgInt = document.getElementById('car-form-img-int').value.trim();
+      const priceEl = document.getElementById('car-form-price');
+      const listPrice = priceEl ? (Number(priceEl.value.replace(/\D/g, '')) || 800000000) : 800000000;
+      
+      const discountEl = document.getElementById('car-form-discount');
+      const discount = discountEl ? (Number(discountEl.value.replace(/\D/g, '')) || 0) : 0;
+      
+      const imgExt = document.getElementById('car-form-img-ext')?.value?.trim() || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80';
+      const imgInt = document.getElementById('car-form-img-int')?.value?.trim() || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80';
+      const segment = document.getElementById('car-form-segment')?.value || 'C-SUV 5 Chỗ';
+      const engine = document.getElementById('car-form-engine')?.value || 'SkyActiv-G 2.0L';
+      const seats = Number(document.getElementById('car-form-seats')?.value) || 5;
+      const warranty = document.getElementById('car-form-warranty')?.value || '5 năm hoặc 150.000 km';
 
       const existing = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
 
       const colorsList = this.editingCarColors.map(c => ({
         ...c,
-        imageExterior: c.imageExterior || imgExt || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80'
+        imageExterior: c.imageExterior || imgExt
       }));
 
       const carData = {
@@ -256,12 +330,12 @@ const SalesAdminModule = {
         VehicleCode: carId,
         brand: brand,
         name: name,
-        segment: document.getElementById('car-form-segment').value,
+        segment: segment,
         listPrice: listPrice,
         defaultDiscount: discount,
-        engine: document.getElementById('car-form-engine').value,
-        seats: Number(document.getElementById('car-form-seats').value) || 5,
-        warranty: document.getElementById('car-form-warranty').value,
+        engine: engine,
+        seats: seats,
+        warranty: warranty,
         imageExterior: imgExt,
         imageInterior: imgInt,
         colors: colorsList.length > 0 ? colorsList : [
