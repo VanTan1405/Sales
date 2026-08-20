@@ -10,8 +10,10 @@ const SalesAdminModule = {
 
   init: function() {
     this.bindEvents();
+    this.bindPhotoEvents();
     this.renderCarsTable();
     this.populateQuoteCarSelect();
+    this.renderRealPhotosGallery();
     this.loadCarsList();
     this.loadMyQuotations();
   },
@@ -405,41 +407,183 @@ const SalesAdminModule = {
   },
 
   /**
-   * Lưu ảnh xe thật chụp tại bãi
+   * Lưu ảnh xe thật chụp tại bãi (Hỗ trợ cả File Upload & URL)
    */
+  currentPhotoDataUrl: null,
+
+  bindPhotoEvents: function() {
+    const fileInput = document.getElementById('photo-file-input');
+    const urlInput = document.getElementById('photo-url-input');
+    const previewBox = document.getElementById('photo-preview-box');
+    const previewImg = document.getElementById('photo-preview-img');
+    const carSelect = document.getElementById('photo-car-select');
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          this.currentPhotoDataUrl = event.target.result;
+          if (previewImg && previewBox) {
+            previewImg.src = this.currentPhotoDataUrl;
+            previewBox.classList.remove('hidden');
+          }
+          if (urlInput) urlInput.value = '';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    urlInput?.addEventListener('input', () => {
+      const url = urlInput.value.trim();
+      if (url && previewImg && previewBox) {
+        this.currentPhotoDataUrl = url;
+        previewImg.src = url;
+        previewBox.classList.remove('hidden');
+      }
+    });
+
+    carSelect?.addEventListener('change', () => {
+      this.renderRealPhotosGallery();
+    });
+  },
+
   saveRealPhoto: async function() {
     try {
       const carId = document.getElementById('photo-car-select').value;
-      const title = document.getElementById('photo-title-input').value;
+      const title = document.getElementById('photo-title-input').value.trim();
       const category = document.getElementById('photo-category-input').value;
-      const url = document.getElementById('photo-url-input').value;
+      const urlVal = document.getElementById('photo-url-input').value.trim();
+      const finalUrl = this.currentPhotoDataUrl || urlVal;
 
-      if (!url) {
-        alert("Vui lòng nhập đường dẫn URL ảnh hoặc chọn file!");
+      if (!finalUrl) {
+        alert("Vui lòng chọn 1 tệp ảnh từ máy tính hoặc dán đường dẫn URL ảnh!");
         return;
       }
 
-      const car = this.carsList.find(c => c.id === carId);
-      if (car) {
-        car.realPhotos = car.realPhotos || [];
-        car.realPhotos.unshift({ title, category, desc: "Ảnh thật chụp tại bãi kho THACO", url });
+      const newPhoto = {
+        id: `photo_${Date.now()}`,
+        title: title || "Ảnh xe thực tế",
+        category: category,
+        desc: `Ảnh chụp tại bãi kho THACO (${category})`,
+        url: finalUrl,
+        uploadedAt: new Date().toLocaleDateString('vi-VN')
+      };
+
+      // 1. Cập nhật vào mảng Local
+      let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+      if (!car && typeof THACO_CARS_DATA !== 'undefined') {
+        car = THACO_CARS_DATA.models[carId];
       }
 
+      if (car) {
+        car.realPhotos = car.realPhotos || [];
+        car.realPhotos.unshift(newPhoto);
+      }
+
+      // 2. Lưu vào LocalStorage
+      const localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
+      localPhotos.unshift(newPhoto);
+      localStorage.setItem(`thaco_real_photos_${carId}`, JSON.stringify(localPhotos));
+
+      // 3. Lưu Firestore nếu có
       if (typeof fbDb !== 'undefined' && fbDb) {
-        const carRef = fbDb.collection('cars').doc(carId);
-        const carDoc = await carRef.get();
-        if (carDoc.exists) {
-          const carData = carDoc.data();
-          const photos = carData.realPhotos || [];
-          photos.unshift({ title, category, desc: "Ảnh thật chụp tại bãi kho THACO", url });
-          await carRef.update({ realPhotos: photos });
-        }
+        try {
+          const carRef = fbDb.collection('cars').doc(carId);
+          const carDoc = await carRef.get();
+          if (carDoc.exists) {
+            const photos = carDoc.data().realPhotos || [];
+            photos.unshift(newPhoto);
+            await carRef.update({ realPhotos: photos });
+          }
+        } catch (e) {}
       }
 
       window.showToast("Đã lưu ảnh chụp thật vào kho xe thành công!");
+      
+      // Reset form
       document.getElementById('sales-real-photo-form').reset();
+      this.currentPhotoDataUrl = null;
+      document.getElementById('photo-preview-box')?.classList.add('hidden');
+      this.renderRealPhotosGallery();
+
     } catch (err) {
       alert("Lỗi lưu ảnh: " + err.message);
     }
+  },
+
+  renderRealPhotosGallery: function() {
+    const container = document.getElementById('admin-real-photos-grid');
+    const countBadge = document.getElementById('photo-gallery-count');
+    const select = document.getElementById('photo-car-select');
+    if (!container || !select) return;
+
+    const carId = select.value;
+    let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+    if (!car && typeof THACO_CARS_DATA !== 'undefined') {
+      car = THACO_CARS_DATA.models[carId];
+    }
+
+    const defaultPhotos = (car && car.realPhotos) ? car.realPhotos : [];
+    const localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
+    
+    // Ghép ảnh không trùng lặp
+    const allPhotos = [...localPhotos];
+    defaultPhotos.forEach(dp => {
+      if (!allPhotos.some(ap => ap.url === dp.url)) {
+        allPhotos.push(dp);
+      }
+    });
+
+    if (countBadge) countBadge.textContent = `${allPhotos.length} ảnh (${car ? (car.name || car.ModelName) : 'Xe'})`;
+
+    if (allPhotos.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-2 py-10 text-center text-slate-500 text-xs">
+          <i class="fa-solid fa-camera text-3xl mb-2 text-slate-600 block"></i>
+          Chưa có ảnh chụp thật nào cho dòng xe này.<br>Hãy tải ảnh đầu tiên ở cột bên trái!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = allPhotos.map((p, idx) => `
+      <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 group hover:border-cyan-500/50 transition">
+        <div class="aspect-video rounded-xl overflow-hidden bg-slate-950 relative">
+          <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+          <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur text-[10px] font-bold text-cyan-300 border border-slate-700">
+            ${p.category || 'Nội thất'}
+          </span>
+        </div>
+        <div class="flex justify-between items-start">
+          <div>
+            <strong class="text-white text-xs block line-clamp-1">${p.title || 'Ảnh thực tế'}</strong>
+            <span class="text-[11px] text-slate-400 block">${p.desc || 'Chụp tại bãi kho'}</span>
+          </div>
+          <button onclick="SalesAdminModule.deleteRealPhoto('${carId}', ${idx})" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="Xóa ảnh">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  deleteRealPhoto: function(carId, idx) {
+    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi kho?")) return;
+    
+    let localPhotos = JSON.parse(localStorage.getItem(`thaco_real_photos_${carId}`) || '[]');
+    if (localPhotos.length > idx) {
+      localPhotos.splice(idx, 1);
+      localStorage.setItem(`thaco_real_photos_${carId}`, JSON.stringify(localPhotos));
+    }
+
+    let car = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+    if (car && car.realPhotos && car.realPhotos.length > idx) {
+      car.realPhotos.splice(idx, 1);
+    }
+
+    this.renderRealPhotosGallery();
+    window.showToast("Đã xóa ảnh thành công!");
   }
 };
+

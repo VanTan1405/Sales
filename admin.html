@@ -643,52 +643,95 @@
       </section>
 
       <!-- ===============================================================
-           SALES TAB 4: REAL PHOTOS MANAGEMENT
+           SALES TAB 4: REAL PHOTOS MANAGEMENT (THÊM ẢNH THẬT BÃI XE)
            =============================================================== -->
       <section id="pane-sales-photos" class="admin-tab-pane hidden space-y-6">
-        <div class="max-w-2xl mx-auto p-6 rounded-3xl admin-card space-y-5">
-          <div>
-            <h2 class="text-lg font-black text-white flex items-center gap-2">
-              <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>
-              Thêm Ảnh Chụp Thật Tại Bãi Kho Showroom
-            </h2>
-            <p class="text-xs text-slate-400">Tải ảnh xe thật để khách hàng soi kính lúp trên trang báo giá</p>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Upload Form (5 Cols) -->
+          <div class="lg:col-span-5 p-6 rounded-3xl admin-card space-y-5">
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>
+                Thêm Ảnh Chụp Thật Tại Bãi Kho
+              </h2>
+              <p class="text-xs text-slate-400">Ảnh tải lên sẽ hiển thị trên kính lúp ở trang báo giá cho khách soi</p>
+            </div>
+
+            <form id="sales-real-photo-form" class="space-y-4 text-xs sm:text-sm">
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">1. Chọn dòng xe:</label>
+                <select id="photo-car-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                  <option value="mazda-cx5">Mazda CX-5 2.0L Premium Active</option>
+                  <option value="kia-carnival">Kia Carnival 2.2D Signature</option>
+                  <option value="peugeot-408">Peugeot 408 GT 1.6L Turbo</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">2. Tiêu đề ảnh:</label>
+                <input type="text" id="photo-title-input" required placeholder="Nội thất ghế da Nappa nguyên seal bãi kho" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">3. Phân loại ảnh:</label>
+                <select id="photo-category-input" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                  <option value="Nội thất">Nội thất (Ghế da, Màn hình, HUD)</option>
+                  <option value="Ngoại thất">Ngoại thất (Mâm xe, Đèn pha, Sơn)</option>
+                  <option value="Phụ kiện & Đã lên đồ">Phụ kiện & Đã dán phim cách nhiệt</option>
+                  <option value="Số khung VIN & Giấy tờ">Số khung VIN & Sổ bảo hành</option>
+                </select>
+              </div>
+
+              <!-- File Upload Dropzone -->
+              <div class="space-y-2">
+                <label class="font-bold text-slate-300 block mb-1">4. Chọn tệp ảnh từ Máy tính / Điện thoại:</label>
+                <div class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-4 text-center cursor-pointer transition bg-slate-900/60" onclick="document.getElementById('photo-file-input').click()">
+                  <input type="file" id="photo-file-input" accept="image/*" class="hidden">
+                  <i class="fa-solid fa-camera text-2xl text-cyan-400 mb-1 block"></i>
+                  <span class="text-xs text-white font-bold block">Bấm để chọn file ảnh hoặc chụp từ camera</span>
+                  <span class="text-[11px] text-slate-400 block mt-0.5">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</span>
+                </div>
+              </div>
+
+              <!-- Or URL Input -->
+              <div>
+                <label class="font-bold text-slate-400 block mb-1 text-xs">Hoặc dán đường link URL ảnh:</label>
+                <input type="url" id="photo-url-input" placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono">
+              </div>
+
+              <!-- Preview Thumbnail -->
+              <div id="photo-preview-box" class="hidden aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative">
+                <img id="photo-preview-img" src="" class="w-full h-full object-cover">
+                <span class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-slate-900/80 text-[10px] text-emerald-400 font-bold">✓ Đã sẵn sàng lưu</span>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Lưu Ảnh Vào Kho Xe Ngay</span>
+              </button>
+            </form>
           </div>
 
-          <form id="sales-real-photo-form" class="space-y-4 text-xs sm:text-sm">
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Chọn dòng xe:</label>
-              <select id="photo-car-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
-                <option value="mazda-cx5">Mazda CX-5 2.0L Premium Active</option>
-                <option value="kia-carnival">Kia Carnival 2.2D Signature</option>
-                <option value="peugeot-408">Peugeot 408 GT 1.6L Turbo</option>
-              </select>
+          <!-- Existing Photos Gallery (7 Cols) -->
+          <div class="lg:col-span-7 p-6 rounded-3xl admin-card space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                  <i class="fa-solid fa-images text-cyan-400"></i>
+                  Thư Viện Ảnh Thật Trong Kho
+                </h3>
+                <p class="text-xs text-slate-400">Các ảnh xe thực tế đang được đồng bộ lên trang khách hàng</p>
+              </div>
+              <span id="photo-gallery-count" class="text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">0 ảnh</span>
             </div>
 
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Tiêu đề ảnh:</label>
-              <input type="text" id="photo-title-input" required placeholder="Ảnh nội thất ghế da Nappa nguyên seal tại bãi" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+            <!-- Photos Grid -->
+            <div id="admin-real-photos-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto pr-1">
+              <!-- Rendered by JS -->
             </div>
+          </div>
 
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Phân loại ảnh:</label>
-              <select id="photo-category-input" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
-                <option value="Ngoại thất">Ngoại thất</option>
-                <option value="Nội thất">Nội thất</option>
-                <option value="Phụ kiện & Đã lên đồ">Phụ kiện & Đã lên đồ</option>
-                <option value="Số khung VIN & Giấy tờ">Số khung VIN & Giấy tờ</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="font-bold text-slate-300 block mb-1">Đường dẫn URL ảnh chụp thật:</label>
-              <input type="url" id="photo-url-input" required placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
-            </div>
-
-            <button type="submit" class="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition">
-              <i class="fa-solid fa-plus mr-1"></i> Lưu Vào Album Xe
-            </button>
-          </form>
         </div>
       </section>
 
