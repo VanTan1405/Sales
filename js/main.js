@@ -44,6 +44,58 @@ const App = {
     this.renderProvinceOptions();
     this.renderGiftsChecklist();
     this.updateQuotation();
+
+    // Lắng nghe cập nhật xe & ảnh từ Firestore / Supabase theo thời gian thực
+    this.listenToDatabaseUpdates();
+  },
+
+  /**
+   * Đồng bộ dữ liệu xe & ảnh từ Database xuống trang khách hàng
+   */
+  listenToDatabaseUpdates: function() {
+    // 1. Lắng nghe Firestore
+    if (typeof fbDb !== 'undefined' && fbDb) {
+      try {
+        fbDb.collection('cars').onSnapshot((snapshot) => {
+          if (!snapshot.empty) {
+            const list = [];
+            snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+            if (list.length > 0) {
+              localStorage.setItem('thaco_custom_cars', JSON.stringify(list));
+              this.renderCarSelectOptions();
+              this.updateQuotation();
+            }
+          }
+        }, () => {});
+      } catch (e) {}
+    }
+
+    // 2. Tải từ Supabase Cloud SQL nếu có
+    if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+      SupabaseService.getVehicles().then(vehicles => {
+        if (vehicles && vehicles.length > 0) {
+          const formatted = vehicles.map(v => ({
+            id: v.VehicleCode,
+            VehicleCode: v.VehicleCode,
+            brand: v.Brand,
+            name: v.ModelName,
+            segment: v.Segment,
+            engine: v.Engine,
+            seats: v.Seats,
+            listPrice: Number(v.ListPrice),
+            defaultDiscount: Number(v.DefaultDiscount),
+            warranty: v.Warranty,
+            imageExterior: v.ImageExterior,
+            imageInterior: v.ImageInterior,
+            colors: v.Colors,
+            realPhotos: v.RealPhotos
+          }));
+          localStorage.setItem('thaco_custom_cars', JSON.stringify(formatted));
+          this.renderCarSelectOptions();
+          this.updateQuotation();
+        }
+      }).catch(() => {});
+    }
   },
 
   /**
@@ -205,9 +257,10 @@ const App = {
     const select = document.getElementById('car-model-select');
     if (!select) return;
 
-    select.innerHTML = Object.values(THACO_CARS_DATA.models).map(car => `
-      <option value="${car.id}" ${car.id === this.state.carId ? 'selected' : ''}>
-        [${car.brand}] ${car.name} - ${QuoteEngine.formatVND(car.listPrice)}
+    const allCars = QuoteEngine.getAllCars();
+    select.innerHTML = allCars.map(car => `
+      <option value="${car.id || car.VehicleCode}" ${(car.id === this.state.carId || car.VehicleCode === this.state.carId) ? 'selected' : ''}>
+        [${car.brand || 'THACO'}] ${car.name || car.ModelName} - ${QuoteEngine.formatVND(car.listPrice || car.ListPrice || 800000000)}
       </option>
     `).join('');
   },

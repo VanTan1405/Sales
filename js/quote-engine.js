@@ -64,6 +64,44 @@ const QuoteEngine = {
   },
 
   /**
+   * Lấy danh sách toàn bộ xe cập nhật từ LocalStorage hoặc dữ liệu gốc
+   */
+  getAllCars: function() {
+    const saved = localStorage.getItem('thaco_custom_cars');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return typeof THACO_CARS_DATA !== 'undefined' ? Object.values(THACO_CARS_DATA.models) : [];
+  },
+
+  /**
+   * Tìm dòng xe an toàn theo carId hoặc VehicleCode
+   */
+  getCar: function(carId) {
+    const allCars = this.getAllCars();
+    let car = allCars.find(c => (c.id === carId || c.VehicleCode === carId));
+    if (!car && typeof THACO_CARS_DATA !== 'undefined' && THACO_CARS_DATA.models[carId]) {
+      car = THACO_CARS_DATA.models[carId];
+    }
+    if (!car && allCars.length > 0) {
+      car = allCars[0];
+    }
+    return car || {
+      id: "mazda-cx5",
+      name: "Mazda CX-5 2.0L Premium Active",
+      listPrice: 829000000,
+      segment: "C-SUV 5 Chỗ",
+      engine: "SkyActiv-G 2.0L",
+      warranty: "5 năm hoặc 150.000 km",
+      colors: [{ id: "soul-red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 }],
+      realPhotos: []
+    };
+  },
+
+  /**
    * Tính toán Toàn Bộ Chi Phí Lăn Bánh
    */
   calcOnTheRoad: function(params) {
@@ -76,8 +114,9 @@ const QuoteEngine = {
       includeServiceFee = true
     } = params;
 
-    const car = THACO_CARS_DATA.models[carId] || THACO_CARS_DATA.models["mazda-cx5"];
-    const color = car.colors.find(c => c.id === colorId) || car.colors[0];
+    const car = this.getCar(carId);
+    const colors = car.colors && car.colors.length > 0 ? car.colors : [{ id: "soul-red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 }];
+    const color = colors.find(c => c.id === colorId) || colors[0];
     const province = THACO_CARS_DATA.provinces.find(p => p.id === provinceId) || THACO_CARS_DATA.provinces[0];
 
     // 1. Giá xe cơ bản

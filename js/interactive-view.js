@@ -192,19 +192,31 @@ const InteractiveViewer = {
    */
   renderRealGallery: function(photos) {
     const container = document.getElementById('real-photos-grid');
-    if (!container || !photos) return;
+    if (!container) return;
 
-    container.innerHTML = photos.map((p, idx) => `
-      <div class="real-photo-card group relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer" data-idx="${idx}">
-        <div class="aspect-video relative overflow-hidden">
+    const list = Array.isArray(photos) ? photos : [];
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+          <i class="fa-solid fa-camera text-2xl mb-1 block opacity-60"></i>
+          Chưa có ảnh chụp thực tế tại kho cho phiên bản này.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map((p, idx) => `
+      <div class="real-photo-card group relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:border-cyan-500/50 transition" data-idx="${idx}">
+        <div class="aspect-video relative overflow-hidden bg-slate-950">
           <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
-          <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/80 text-white backdrop-blur">
-            ${p.category}
+          <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/80 text-cyan-300 backdrop-blur border border-slate-700">
+            ${p.category || 'Nội thất'}
           </span>
         </div>
         <div class="p-3">
-          <h4 class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white line-clamp-1">${p.title}</h4>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">${p.desc}</p>
+          <h4 class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white line-clamp-1">${p.title || 'Ảnh thực tế'}</h4>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">${p.desc || 'Chụp tại bãi kho THACO'}</p>
         </div>
       </div>
     `).join('');
@@ -213,7 +225,7 @@ const InteractiveViewer = {
     container.querySelectorAll('.real-photo-card').forEach(card => {
       card.addEventListener('click', () => {
         const idx = parseInt(card.getAttribute('data-idx'));
-        const photo = photos[idx];
+        const photo = list[idx];
         if (photo) this.openPhotoMagnifierModal(photo);
       });
     });
