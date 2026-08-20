@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THACO AUTO - Quản Trị Hệ Thống | Administrator & Sales Workspace</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            thaco: {
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Custom Admin CSS -->
+  <link rel="stylesheet" href="css/admin.css">
+
+  <!-- Firebase v10 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- ===================================================================
+       1. AUTH SCREEN: LOGIN / REGISTER
+       =================================================================== -->
+  <div id="auth-screen-container" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+    <div class="w-full max-w-md p-8 rounded-3xl admin-card space-y-6 shadow-2xl border border-slate-800">
+      
+      <!-- Brand Logo -->
+      <div class="text-center space-y-1">
+        <div class="inline-flex px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-700 to-indigo-800 font-black text-white text-sm tracking-widest border border-blue-400/30">
+          THACO AUTO
+        </div>
+        <h2 class="text-xl font-black text-white pt-2">Cổng Quản Trị Báo Giá</h2>
+        <p class="text-xs text-slate-400">Dành cho Administrator & Chuyên Viên Tư Vấn Sales</p>
+      </div>
+
+      <!-- Quick 1-Click Login Button for TANNV -->
+      <button id="btn-quick-login-tannv" type="button" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-purple-600/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 border border-purple-400/40">
+        <i class="fa-solid fa-crown text-amber-400 text-base"></i>
+        <span>VÀO THẲNG VỚI QUYỀN ADMINISTRATOR (TANNV)</span>
+      </button>
+
+      <div class="flex items-center gap-2 my-2">
+        <div class="h-px bg-slate-800 flex-1"></div>
+        <span class="text-[11px] text-slate-500 font-bold uppercase">Hoặc đăng nhập form</span>
+        <div class="h-px bg-slate-800 flex-1"></div>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4 text-xs">
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Tài khoản (Username hoặc Email):</label>
+          <input type="text" id="login-email" required value="TANNV" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Mật khẩu:</label>
+          <input type="password" id="login-password" required value="Tien@1405" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Đăng Nhập</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       2. MAIN ADMIN PORTAL
+       =================================================================== -->
+  <div id="admin-portal-container" class="flex-1 flex flex-col hidden">
+
+    <!-- Top Admin Header -->
+    <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+        
+        <!-- Logo & Portal Tag -->
+        <div class="flex items-center gap-3">
+          <div class="h-9 px-3 rounded-xl bg-gradient-to-r from-blue-700 to-indigo-800 flex items-center justify-center font-black text-white text-xs tracking-wider border border-blue-400/30">
+            THACO AUTO
+          </div>
+          <div>
+            <h1 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+              Trung Tâm Quản Trị Báo Giá
+              <span id="header-role-badge" class="text-[10px] px-2 py-0.5 rounded-full font-bold"></span>
+            </h1>
+            <p id="header-showroom-text" class="text-xs text-slate-400"></p>
+          </div>
+        </div>
+
+        <!-- User Profile & Navigation links -->
+        <div class="flex items-center gap-3 text-xs">
+          <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 font-bold transition flex items-center gap-1.5 border border-slate-700">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span class="hidden sm:inline">Mở Trang Khách Hàng</span>
+          </a>
+
+          <div class="h-6 w-px bg-slate-800"></div>
+
+          <div class="text-right hidden sm:block">
+            <strong id="header-user-name" class="text-white block font-bold"></strong>
+            <span id="header-user-email" class="text-[11px] text-slate-400"></span>
+          </div>
+
+          <button id="btn-logout" class="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 font-bold transition border border-rose-800/60" title="Đăng Xuất">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="bg-slate-900 border-b border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-2 py-2 overflow-x-auto no-scrollbar">
+        
+        <!-- Super Admin Only Tabs -->
+        <button data-tab="super-users" class="admin-tab-btn super-only-tab px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-users-gear text-purple-400"></i>
+          Duyệt & Phân Quyền
+          <span id="pending-badge-counter" class="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] hidden">0</span>
+        </button>
+
+        <button data-tab="super-stats" class="admin-tab-btn super-only-tab px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-chart-line text-emerald-400"></i>
+          Báo Cáo Doanh Thu Cọc
+        </button>
+
+        <button data-tab="super-settings" class="admin-tab-btn super-only-tab px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-building-columns text-blue-400"></i>
+          Cấu Hình VietQR Showroom
+        </button>
+
+        <!-- Common Sales & Admin Tabs -->
+        <button data-tab="sales-quotes" class="admin-tab-btn active px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-file-invoice-dollar text-blue-400"></i>
+          Quản Lý Báo Giá & Đơn Cọc
+        </button>
+
+        <button data-tab="sales-create-quote" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+          Tạo Báo Giá Mới (Sinh Link Zalo)
+        </button>
+
+        <button data-tab="sales-cars" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-car text-amber-400"></i>
+          Danh Mục Xe & Giá Bán
+        </button>
+
+        <button data-tab="sales-photos" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-slate-400 hover:text-white flex items-center gap-2 transition">
+          <i class="fa-solid fa-images text-cyan-400"></i>
+          Album Ảnh Chụp Thật
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Main Workspace Tab Panes -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- ===============================================================
+           SUPER ADMIN TAB 1: USER APPROVAL & ROLE MANAGEMENT
+           =============================================================== -->
+      <section id="pane-super-users" class="admin-tab-pane hidden space-y-6">
+        <div class="p-6 rounded-3xl admin-card space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-user-shield text-purple-400"></i>
+                Phê Duyệt & Phân Quyền Thành Viên Showroom
+              </h2>
+              <p class="text-xs text-slate-400">Quản lý các tài khoản Sales đăng ký vào hệ thống báo giá</p>
+            </div>
+
+            <!-- Filter -->
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-slate-400">Trạng thái:</span>
+              <select id="user-status-filter" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                <option value="all">Tất cả thành viên</option>
+                <option value="pending">Chờ phê duyệt</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="suspended">Đã khóa</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stats Overview -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 text-xs block">Tài khoản chờ duyệt:</span>
+              <strong id="super-stat-pending-users" class="text-2xl font-black text-amber-400">0</strong>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 text-xs block">Sales đang hoạt động:</span>
+              <strong id="super-stat-active-users" class="text-2xl font-black text-emerald-400">0</strong>
+            </div>
+          </div>
+
+          <!-- Users Table -->
+          <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-slate-800/80 text-[11px] font-bold text-slate-400 uppercase">
+                  <th class="px-4 py-3">Họ Tên & Email</th>
+                  <th class="px-4 py-3">Số Điện Thoại</th>
+                  <th class="px-4 py-3">Showroom</th>
+                  <th class="px-4 py-3">Vai Trò</th>
+                  <th class="px-4 py-3">Trạng Thái</th>
+                  <th class="px-4 py-3 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="super-users-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SUPER ADMIN TAB 2: SYSTEM STATS & DEPOSITS REPORT
+           =============================================================== -->
+      <section id="pane-super-stats" class="admin-tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="p-6 rounded-3xl admin-card border-l-4 border-blue-500">
+            <span class="text-xs font-bold text-slate-400 uppercase block">Tổng Báo Giá Đã Tạo:</span>
+            <h3 id="super-stat-total-quotes" class="text-3xl font-black text-white mt-1">0</h3>
+            <p class="text-[11px] text-blue-400 mt-1">Toàn bộ showroom</p>
+          </div>
+
+          <div class="p-6 rounded-3xl admin-card border-l-4 border-emerald-500">
+            <span class="text-xs font-bold text-slate-400 uppercase block">Tổng Số Đơn Đã Cọc VietQR:</span>
+            <h3 id="super-stat-total-deposits" class="text-3xl font-black text-emerald-400 mt-1">0</h3>
+            <p class="text-[11px] text-emerald-400 mt-1">Khách đã chuyển khoản giữ xe</p>
+          </div>
+
+          <div class="p-6 rounded-3xl admin-card border-l-4 border-purple-500">
+            <span class="text-xs font-bold text-slate-400 uppercase block">Tổng Doanh Thu Tiền Cọc:</span>
+            <h3 id="super-stat-total-money" class="text-3xl font-black text-purple-400 mt-1">0 đ</h3>
+            <p class="text-[11px] text-purple-300 mt-1">Đã vào tài khoản THACO</p>
+          </div>
+        </div>
+
+        <div class="p-6 rounded-3xl admin-card space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-emerald-400"></i>
+            Danh Sách Giao Dịch Cọc Mới Nhất Qua VietQR
+          </h3>
+          <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-slate-800/80 text-[11px] font-bold text-slate-400 uppercase">
+                  <th class="px-4 py-3">Khách Hàng</th>
+                  <th class="px-4 py-3">Số Điện Thoại</th>
+                  <th class="px-4 py-3">Dòng Xe Đặt Cọc</th>
+                  <th class="px-4 py-3">Số Tiền Cọc</th>
+                  <th class="px-4 py-3">Sales Phụ Trách</th>
+                </tr>
+              </thead>
+              <tbody id="super-deposits-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SUPER ADMIN TAB 3: SHOWROOM & VIETQR CONFIG
+           =============================================================== -->
+      <section id="pane-super-settings" class="admin-tab-pane hidden space-y-6">
+        <div class="max-w-2xl mx-auto p-6 rounded-3xl admin-card space-y-5">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-gear text-blue-400"></i>
+              Cấu Hình Tài Khoản Nhận Cọc Showroom (VietQR)
+            </h2>
+            <p class="text-xs text-slate-400">Thông tin này sẽ được dùng để tự động tạo mã VietQR cho khách hàng thanh toán</p>
+          </div>
+
+          <form id="super-settings-form" class="space-y-4 text-xs sm:text-sm">
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Ngân hàng thụ hưởng:</label>
+              <input type="text" id="setting-bank-name" value="Ngân hàng TMCP Ngoại Thương Việt Nam (Vietcombank)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Số tài khoản ngân hàng:</label>
+              <input type="text" id="setting-bank-account" value="0071001234567" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Tên chủ tài khoản (In hoa không dấu):</label>
+              <input type="text" id="setting-account-holder" value="CONG TY CO PHAN O TO TRUONG HAI - THACO AUTO" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-blue-400 font-black">
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Số tiền cọc mặc định (VND):</label>
+              <input type="text" id="setting-deposit-amount" value="20.000.000" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-emerald-400 font-black">
+            </div>
+
+            <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu Cấu Hình Toàn Hệ Thống
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SALES TAB 1: QUOTATIONS LIST
+           =============================================================== -->
+      <section id="pane-sales-quotes" class="admin-tab-pane space-y-6">
+        <div class="p-6 rounded-3xl admin-card space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-folder-open text-blue-400"></i>
+                Danh Sách Báo Giá & Trạng Thái Cọc Của Khách Hàng
+              </h2>
+              <p class="text-xs text-slate-400">Theo dõi khách hàng đã nhận báo giá và quét mã cọc xe</p>
+            </div>
+
+            <button onclick="document.querySelector('[data-tab=sales-create-quote]').click()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-2">
+              <i class="fa-solid fa-plus"></i>
+              <span>Tạo Báo Giá Mới</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-slate-800/80 text-[11px] font-bold text-slate-400 uppercase">
+                  <th class="px-4 py-3">Mã Báo Giá</th>
+                  <th class="px-4 py-3">Khách Hàng</th>
+                  <th class="px-4 py-3">Dòng Xe</th>
+                  <th class="px-4 py-3">Tổng Lăn Bánh</th>
+                  <th class="px-4 py-3">Trạng Thái</th>
+                  <th class="px-4 py-3 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="sales-quotes-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SALES TAB 2: CREATE NEW QUOTE
+           =============================================================== -->
+      <section id="pane-sales-create-quote" class="admin-tab-pane hidden space-y-6">
+        <div class="max-w-3xl mx-auto p-6 rounded-3xl admin-card space-y-5">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-file-circle-plus text-emerald-400"></i>
+              Soạn Báo Giá Cho Khách & Sinh Link Zalo
+            </h2>
+            <p class="text-xs text-slate-400">Nhập thông tin khách hàng để tạo trang báo giá tương tác riêng biệt</p>
+          </div>
+
+          <form id="sales-create-quote-form" class="space-y-4 text-xs sm:text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">Tên khách hàng:</label>
+                <input type="text" id="quote-form-cust-name" required placeholder="Anh Tuấn / Chị Mai" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+              </div>
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">Số điện thoại khách:</label>
+                <input type="tel" id="quote-form-cust-phone" required placeholder="0912.345.678" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+              </div>
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Chọn dòng xe báo giá:</label>
+              <select id="quote-form-car-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="font-bold text-slate-300 block mb-1">Tỉnh/Thành đăng ký biển số:</label>
+                <select id="quote-form-province" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                  <option value="hcm">TP. Hồ Chí Minh (Thuế 10% - Biển số 20tr)</option>
+                  <option value="hanoi">Hà Nội (Thuế 12% - Biển số 20tr)</option>
+                  <option value="binhduong">Bình Dương (Thuế 10% - Biển số 1tr)</option>
+                  <option value="danang">Đà Nẵng (Thuế 10% - Biển số 1tr)</option>
+                  <option value="other">Tỉnh khác (Thuế 10% - Biển số 1tr)</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-rose-400 block mb-1">Giảm giá tiền mặt tháng này (VND):</label>
+                <input type="text" id="quote-form-discount" value="30.000.000" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-rose-400 font-black">
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-link"></i>
+              <span>Tạo Báo Giá & Sinh Link Chia Sẻ Ngay</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SALES TAB 3: CARS CATALOG CRUD
+           =============================================================== -->
+      <section id="pane-sales-cars" class="admin-tab-pane hidden space-y-6">
+        <div class="p-6 rounded-3xl admin-card space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-car-side text-amber-400"></i>
+                Danh Mục Các Dòng Xe & Giá Niêm Yết
+              </h2>
+              <p class="text-xs text-slate-400">Quản lý dòng xe, bảng màu sơn và thông số kỹ thuật trên hệ thống</p>
+            </div>
+            <button id="btn-open-add-car" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition flex items-center gap-2">
+              <i class="fa-solid fa-plus"></i>
+              <span>Thêm Dòng Xe Mới</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-slate-800/80 text-[11px] font-bold text-slate-400 uppercase">
+                  <th class="px-4 py-3">Dòng Xe</th>
+                  <th class="px-4 py-3">Giá Niêm Yết</th>
+                  <th class="px-4 py-3">Phân Khúc</th>
+                  <th class="px-4 py-3">Màu Sắc</th>
+                  <th class="px-4 py-3 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="sales-cars-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           SALES TAB 4: REAL PHOTOS MANAGEMENT
+           =============================================================== -->
+      <section id="pane-sales-photos" class="admin-tab-pane hidden space-y-6">
+        <div class="max-w-2xl mx-auto p-6 rounded-3xl admin-card space-y-5">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>
+              Thêm Ảnh Chụp Thật Tại Bãi Kho Showroom
+            </h2>
+            <p class="text-xs text-slate-400">Tải ảnh xe thật để khách hàng soi kính lúp trên trang báo giá</p>
+          </div>
+
+          <form id="sales-real-photo-form" class="space-y-4 text-xs sm:text-sm">
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Chọn dòng xe:</label>
+              <select id="photo-car-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                <option value="mazda-cx5">Mazda CX-5 2.0L Premium Active</option>
+                <option value="kia-carnival">Kia Carnival 2.2D Signature</option>
+                <option value="peugeot-408">Peugeot 408 GT 1.6L Turbo</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Tiêu đề ảnh:</label>
+              <input type="text" id="photo-title-input" required placeholder="Ảnh nội thất ghế da Nappa nguyên seal tại bãi" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Phân loại ảnh:</label>
+              <select id="photo-category-input" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+                <option value="Ngoại thất">Ngoại thất</option>
+                <option value="Nội thất">Nội thất</option>
+                <option value="Phụ kiện & Đã lên đồ">Phụ kiện & Đã lên đồ</option>
+                <option value="Số khung VIN & Giấy tờ">Số khung VIN & Giấy tờ</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Đường dẫn URL ảnh chụp thật:</label>
+              <input type="url" id="photo-url-input" required placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold">
+            </div>
+
+            <button type="submit" class="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition">
+              <i class="fa-solid fa-plus mr-1"></i> Lưu Vào Album Xe
+            </button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: ADD / EDIT CAR
+       =================================================================== -->
+  <div id="car-edit-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 id="car-modal-title" class="font-black text-white text-base">Thêm Dòng Xe Mới</h3>
+        <button id="btn-close-car-modal" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="sales-car-form" class="space-y-3 text-xs sm:text-sm">
+        <input type="hidden" id="car-edit-id">
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Hãng xe:</label>
+            <select id="car-form-brand" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold">
+              <option value="Mazda">Mazda</option>
+              <option value="Kia">Kia</option>
+              <option value="Peugeot">Peugeot</option>
+              <option value="BMW">BMW</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Tên dòng xe & phiên bản:</label>
+            <input type="text" id="car-form-name" required placeholder="Mazda CX-5 2.0L Premium" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Giá niêm yết (VND):</label>
+            <input type="text" id="car-form-price" required placeholder="829.000.000" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 font-black">
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Giảm giá mặc định (VND):</label>
+            <input type="text" id="car-form-discount" value="30.000.000" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-rose-400 font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Phân khúc xe:</label>
+            <input type="text" id="car-form-segment" placeholder="C-SUV 5 Chỗ" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">Số chỗ ngồi:</label>
+            <input type="number" id="car-form-seats" value="5" min="2" max="16" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Thông số động cơ:</label>
+          <input type="text" id="car-form-engine" placeholder="SkyActiv-G 2.0L (154 Hp / 200 Nm)" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-300 block mb-1">Chế độ bảo hành:</label>
+          <input type="text" id="car-form-warranty" value="5 năm hoặc 150.000 km" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-600/30 transition mt-3">
+          Lưu Dòng Xe Vào Hệ Thống
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: SHARE QUOTE LINK
+       =================================================================== -->
+  <div id="share-quote-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4">
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto mb-2 border border-emerald-500/30">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h3 class="text-lg font-black text-white">Đã Tạo Báo Giá Thành Công!</h3>
+        <p class="text-xs text-slate-400">Mã Báo Giá: <strong id="share-quote-id" class="text-blue-400"></strong></p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-1.5 text-xs">
+        <div class="flex justify-between"><span class="text-slate-400">Khách hàng:</span> <strong id="share-quote-customer" class="text-white"></strong></div>
+        <div class="flex justify-between"><span class="text-slate-400">Dòng xe:</span> <strong id="share-quote-car" class="text-blue-400"></strong></div>
+        <div class="flex justify-between"><span class="text-slate-400">Tổng lăn bánh:</span> <strong id="share-quote-total" class="text-emerald-400 font-bold"></strong></div>
+      </div>
+
+      <div>
+        <label class="font-bold text-slate-300 text-xs block mb-1">Đường link báo giá trực tuyến cho khách:</label>
+        <input type="text" id="share-quote-url-input" readonly class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-blue-300 text-xs font-mono select-all">
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button id="btn-copy-quote-url" class="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-copy"></i>
+          <span>Copy Link Gửi Zalo</span>
+        </button>
+        <button id="btn-open-quote-tab" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </button>
+      </div>
+
+      <button id="btn-close-share-modal" class="w-full py-2 text-xs text-slate-400 hover:text-white">Đóng</button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-notification" class="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700 text-xs sm:text-sm font-semibold flex items-center gap-3 transition-all duration-300 transform translate-y-10 opacity-0 hidden">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/cars-data.js"></script>
+  <script src="js/quote-engine.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth-manager.js"></script>
+  <script src="js/admin-super.js"></script>
+  <script src="js/admin-sales.js"></script>
+
+  <!-- Admin Controller Inline -->
+  <script>
+    function renderAppView(user, profile) {
+      const authScreen = document.getElementById('auth-screen-container');
+      const portal = document.getElementById('admin-portal-container');
+
+      if (user && profile) {
+        authScreen.classList.add('hidden');
+        portal.classList.remove('hidden');
+
+        document.getElementById('header-user-name').textContent = profile.displayName || profile.email;
+        document.getElementById('header-user-email').textContent = profile.email;
+        document.getElementById('header-showroom-text').textContent = profile.showroom || 'THACO AUTO Showroom';
+
+        const roleBadge = document.getElementById('header-role-badge');
+        const isSuper = profile.role === 'super_admin';
+
+        if (isSuper) {
+          roleBadge.textContent = "👑 Administrator";
+          roleBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-black bg-purple-600 text-white shadow-sm";
+        } else {
+          roleBadge.textContent = "💼 Sales Consultant";
+          roleBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-600 text-white shadow-sm";
+        }
+
+        document.querySelectorAll('.super-only-tab').forEach(tab => {
+          tab.style.display = isSuper ? 'inline-flex' : 'none';
+        });
+
+        if (isSuper) {
+          SuperAdminModule.init();
+        }
+        SalesAdminModule.init();
+
+      } else {
+        authScreen.classList.remove('hidden');
+        portal.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Check saved session immediately
+      AuthManager.init((user, profile) => {
+        renderAppView(user, profile);
+      });
+
+      // 2. Quick 1-Click Login Button for TANNV
+      document.getElementById('btn-quick-login-tannv')?.addEventListener('click', async () => {
+        try {
+          const profile = await AuthManager.login('TANNV', 'Tien@1405');
+          renderAppView(AuthManager.currentUser, profile);
+          window.showToast("Chào mừng Administrator TANNV trở lại hệ thống!");
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      // 3. Login form submit handler
+      document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          const userVal = document.getElementById('login-email').value;
+          const pass = document.getElementById('login-password').value;
+          const profile = await AuthManager.login(userVal, pass);
+          renderAppView(AuthManager.currentUser, profile);
+          window.showToast("Đăng nhập thành công!");
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      // 4. Logout handler
+      document.getElementById('btn-logout')?.addEventListener('click', () => {
+        AuthManager.logout();
+      });
+
+      // 5. Workspace Tab Switching
+      const adminTabBtns = document.querySelectorAll('.admin-tab-btn');
+      const adminTabPanes = document.querySelectorAll('.admin-tab-pane');
+
+      adminTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-tab');
+          adminTabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          adminTabPanes.forEach(pane => {
+            if (pane.id === `pane-${tab}`) {
+              pane.classList.remove('hidden');
+            } else {
+              pane.classList.add('hidden');
+            }
+          });
+        });
+      });
+    });
+
+    window.showToast = function(msg) {
+      const toast = document.getElementById('toast-notification');
+      const text = document.getElementById('toast-message');
+      if (toast && text) {
+        text.textContent = msg;
+        toast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+        setTimeout(() => {
+          toast.classList.add('translate-y-10', 'opacity-0');
+          setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 3000);
+      }
+    };
+  </script>
+</body>
+</html>
