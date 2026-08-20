@@ -4,7 +4,6 @@
  */
 
 const SupabaseConfig = {
-  // Cấu hình Supabase lưu trong LocalStorage hoặc cấu hình mặc định
   url: localStorage.getItem('supabase_url') || '',
   anonKey: localStorage.getItem('supabase_anon_key') || '',
   client: null,
@@ -55,13 +54,27 @@ const SupabaseService = {
    * Thêm hoặc cập nhật dòng xe vào B20Vehicle
    */
   saveVehicle: async function(vehicle) {
-    if (!SupabaseConfig.client) throw new Error("Supabase chưa được kết nối");
+    if (!SupabaseConfig.client) return null;
     const { data, error } = await SupabaseConfig.client
       .from('B20Vehicle')
       .upsert(vehicle, { onConflict: 'VehicleCode' })
       .select();
 
-    if (error) throw error;
+    if (error) console.warn("Supabase saveVehicle notice:", error);
+    return data;
+  },
+
+  /**
+   * Xóa dòng xe khỏi B20Vehicle
+   */
+  deleteVehicle: async function(vehicleCode) {
+    if (!SupabaseConfig.client) return null;
+    const { data, error } = await SupabaseConfig.client
+      .from('B20Vehicle')
+      .delete()
+      .eq('VehicleCode', vehicleCode);
+
+    if (error) console.warn("Supabase deleteVehicle notice:", error);
     return data;
   },
 
@@ -94,7 +107,7 @@ const SupabaseService = {
       const custRes = await this.saveCustomer({
         FullName: quoteData.customerName,
         Phone: quoteData.customerPhone,
-        Province: quoteData.province,
+        Province: quoteData.province || quoteData.provinceId,
         SalesConsultant: quoteData.salesName,
         Status: 'Đã nhận báo giá'
       });
@@ -109,12 +122,12 @@ const SupabaseService = {
       CustomerPhone: quoteData.customerPhone,
       CarName: quoteData.carName,
       ColorName: quoteData.colorName || 'Đỏ Pha Lê',
-      Province: quoteData.province,
+      Province: quoteData.province || quoteData.provinceId,
       ListPrice: quoteData.listPrice,
       DiscountAmount: quoteData.discount,
       InvoicePrice: quoteData.invoicePrice,
       TotalOnTheRoad: quoteData.totalOnTheRoad,
-      DepositAmount: 20000000,
+      DepositAmount: quoteData.depositAmount || 20000000,
       DepositStatus: 'sent',
       SalesName: quoteData.salesName,
       SalesPhone: quoteData.salesPhone,
@@ -123,13 +136,26 @@ const SupabaseService = {
 
     const { data, error } = await SupabaseConfig.client
       .from('B20Quotation')
-      .insert([record])
+      .upsert([record], { onConflict: 'QuoteID' })
       .select();
 
     if (error) {
-      console.error("Supabase createQuotation error:", error);
-      throw error;
+      console.warn("Supabase createQuotation notice:", error);
     }
+    return data;
+  },
+
+  /**
+   * Xóa báo giá khỏi B20Quotation
+   */
+  deleteQuotation: async function(quoteId) {
+    if (!SupabaseConfig.client) return null;
+    const { data, error } = await SupabaseConfig.client
+      .from('B20Quotation')
+      .delete()
+      .eq('QuoteID', quoteId);
+
+    if (error) console.warn("Supabase deleteQuotation notice:", error);
     return data;
   },
 
