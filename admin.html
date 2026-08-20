@@ -789,18 +789,41 @@
           </div>
         </div>
 
-        <div>
-          <label class="font-bold text-slate-300 block mb-1">Thông số động cơ:</label>
-          <input type="text" id="car-form-engine" placeholder="SkyActiv-G 2.0L (154 Hp / 200 Nm)" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+        <!-- Photo & Color Inputs -->
+        <div class="border-t border-slate-800 pt-3 space-y-3">
+          <h4 class="font-bold text-blue-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-palette"></i>
+            Hình Ảnh Mẫu & Bảng Màu Sơn Xe
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Ảnh Ngoại Thất Xe Mặc Định (URL):</label>
+              <input type="url" id="car-form-img-ext" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono">
+            </div>
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">Ảnh Nội Thất Khoang Lái (URL):</label>
+              <input type="url" id="car-form-img-int" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono">
+            </div>
+          </div>
+
+          <!-- Color Customizer -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="font-bold text-slate-300 block">Các Màu Sơn Chính Hãng & Giá Phụ Thu:</label>
+              <button type="button" id="btn-add-car-color" class="px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-300 text-[11px] font-bold border border-blue-500/40">
+                <i class="fa-solid fa-plus mr-1"></i>Thêm Màu Sơn
+              </button>
+            </div>
+
+            <div id="car-colors-editor-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label class="font-bold text-slate-300 block mb-1">Chế độ bảo hành:</label>
-          <input type="text" id="car-form-warranty" value="5 năm hoặc 150.000 km" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
-        </div>
-
-        <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-600/30 transition mt-3">
-          Lưu Dòng Xe Vào Hệ Thống
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-600/30 transition mt-3">
+          Lưu Dòng Xe & Bảng Màu Vào Hệ Thống
         </button>
       </form>
     </div>

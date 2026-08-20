@@ -119,6 +119,8 @@ const SalesAdminModule = {
     }).join('');
   },
 
+  editingCarColors: [],
+
   openCarModal: function(carId = null) {
     const modal = document.getElementById('car-edit-modal');
     const title = document.getElementById('car-modal-title');
@@ -140,12 +142,60 @@ const SalesAdminModule = {
         document.getElementById('car-form-engine').value = car.engine || car.Engine || '';
         document.getElementById('car-form-seats').value = car.seats || car.Seats || 5;
         document.getElementById('car-form-warranty').value = car.warranty || car.Warranty || '5 năm hoặc 150.000 km';
+
+        const colors = car.colors || [{ id: "soul-red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 }];
+        document.getElementById('car-form-img-ext').value = (colors[0] && colors[0].imageExterior) || car.imageExterior || '';
+        document.getElementById('car-form-img-int').value = car.imageInterior || '';
+        this.editingCarColors = JSON.parse(JSON.stringify(colors));
       }
     } else {
       title.textContent = "Thêm Dòng Xe Mới Vào Hệ Thống";
+      document.getElementById('car-form-img-ext').value = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80';
+      document.getElementById('car-form-img-int').value = 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80';
+      this.editingCarColors = [
+        { id: "red", name: "Đỏ Pha Lê", hex: "#b31010", extraFee: 8000000 },
+        { id: "white", name: "Trắng Ngọc Trai", hex: "#f3f4f6", extraFee: 4000000 },
+        { id: "black", name: "Đen Ánh Kim", hex: "#18181b", extraFee: 0 }
+      ];
     }
 
+    this.renderCarColorsEditor();
+    this.bindCarColorEvents();
     modal.classList.remove('hidden');
+  },
+
+  bindCarColorEvents: function() {
+    const btnAdd = document.getElementById('btn-add-car-color');
+    if (btnAdd) {
+      btnAdd.onclick = () => {
+        this.editingCarColors.push({
+          id: `color_${Date.now()}`,
+          name: "Màu Sơn Mới",
+          hex: "#3b82f6",
+          extraFee: 0
+        });
+        this.renderCarColorsEditor();
+      };
+    }
+  },
+
+  renderCarColorsEditor: function() {
+    const container = document.getElementById('car-colors-editor-list');
+    if (!container) return;
+
+    container.innerHTML = this.editingCarColors.map((c, idx) => `
+      <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs">
+        <input type="color" value="${c.hex || '#b31010'}" onchange="SalesAdminModule.editingCarColors[${idx}].hex = this.value" class="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0">
+        <input type="text" value="${c.name}" placeholder="Tên màu" onchange="SalesAdminModule.editingCarColors[${idx}].name = this.value" class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-bold">
+        <div class="w-28 flex items-center gap-1">
+          <span class="text-[11px] text-slate-400">+</span>
+          <input type="number" step="1000000" value="${c.extraFee || 0}" placeholder="Phụ thu" onchange="SalesAdminModule.editingCarColors[${idx}].extraFee = Number(this.value)" class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-emerald-400 font-bold text-right" title="Phí phụ thu sơn">
+        </div>
+        <button type="button" onclick="SalesAdminModule.editingCarColors.splice(${idx}, 1); SalesAdminModule.renderCarColorsEditor();" class="text-slate-500 hover:text-rose-400 p-1" title="Xóa màu">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `).join('');
   },
 
   saveCar: async function() {
@@ -153,8 +203,15 @@ const SalesAdminModule = {
       const carId = document.getElementById('car-edit-id').value || `car-${Date.now()}`;
       const listPrice = Number(document.getElementById('car-form-price').value.replace(/\D/g, '')) || 800000000;
       const discount = Number(document.getElementById('car-form-discount').value.replace(/\D/g, '')) || 0;
+      const imgExt = document.getElementById('car-form-img-ext').value.trim();
+      const imgInt = document.getElementById('car-form-img-int').value.trim();
 
-      const existing = this.carsList.find(c => c.id === carId);
+      const existing = this.carsList.find(c => (c.id === carId || c.VehicleCode === carId));
+
+      const colorsList = this.editingCarColors.map(c => ({
+        ...c,
+        imageExterior: c.imageExterior || imgExt || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80'
+      }));
 
       const carData = {
         id: carId,
@@ -166,17 +223,17 @@ const SalesAdminModule = {
         engine: document.getElementById('car-form-engine').value,
         seats: Number(document.getElementById('car-form-seats').value) || 5,
         warranty: document.getElementById('car-form-warranty').value,
-        colors: existing && existing.colors ? existing.colors : [
-          { id: "red", name: "Đỏ Pha Lê", hex: "#b31010", imageExterior: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80", extraFee: 8000000 },
-          { id: "white", name: "Trắng Ngọc Trai", hex: "#f3f4f6", imageExterior: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80", extraFee: 4000000 }
+        imageExterior: imgExt,
+        imageInterior: imgInt,
+        colors: colorsList.length > 0 ? colorsList : [
+          { id: "red", name: "Đỏ Pha Lê", hex: "#b31010", imageExterior: imgExt, extraFee: 8000000 }
         ],
-        imageInterior: existing && existing.imageInterior ? existing.imageInterior : "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80",
         hotspots: existing && existing.hotspots ? existing.hotspots : [],
         realPhotos: existing && existing.realPhotos ? existing.realPhotos : []
       };
 
       // Cập nhật mảng local
-      const idx = this.carsList.findIndex(c => c.id === carId);
+      const idx = this.carsList.findIndex(c => (c.id === carId || c.VehicleCode === carId));
       if (idx >= 0) {
         this.carsList[idx] = carData;
       } else {
@@ -191,8 +248,26 @@ const SalesAdminModule = {
         fbDb.collection('cars').doc(carId).set(carData, { merge: true }).catch(() => {});
       }
 
+      // Lưu Supabase B20Vehicle nếu khả dụng
+      if (typeof SupabaseService !== 'undefined' && SupabaseConfig.isConfigured()) {
+        SupabaseService.saveVehicle({
+          VehicleCode: carId,
+          Brand: carData.brand,
+          ModelName: carData.name,
+          Segment: carData.segment,
+          Engine: carData.engine,
+          Seats: carData.seats,
+          ListPrice: carData.listPrice,
+          DefaultDiscount: carData.defaultDiscount,
+          Warranty: carData.warranty,
+          ImageExterior: carData.imageExterior,
+          ImageInterior: carData.imageInterior,
+          Colors: carData.colors
+        }).catch(() => {});
+      }
+
       document.getElementById('car-edit-modal')?.classList.add('hidden');
-      window.showToast("Đã lưu thông tin dòng xe thành công!");
+      window.showToast("Đã lưu thông tin dòng xe, ảnh và bảng màu thành công!");
     } catch (err) {
       alert("Lỗi lưu xe: " + err.message);
     }
